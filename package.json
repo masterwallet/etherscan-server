@@ -4,7 +4,11 @@
   "description": "EtherScan Server - emulating some functions of etherscan.io API for testing",
   "main": "server.js",
   "scripts": {
-    "start": "cross-env DEBUG=*,-follow-redirects nodemon server.js --cors"
+    "start": "cross-env DEBUG=*,-follow-redirects nodemon server.js --cors",
+    "init:schema": "sudo mysql -u root etherscan -e \"\\. db/schema.sql\" ",
+    "init:db": "sudo mysql -u root -e \"create database etherscan\" ",
+    "update": "node index.js",
+    "resave": "node index.js --replay"
   },
   "keywords": [],
   "author": "Web Cerebrium <webcerebrium@gmail.com> (https://webcerebrium.com/)",
@@ -17,6 +21,7 @@
     "debug": "^3.1.0",
     "ethereumjs-util": "^5.2.0",
     "express": "^4.16.3",
+    "mysql2": "^1.6.1",
     "web3": "^0.20.1"
   },
   "devDependencies": {

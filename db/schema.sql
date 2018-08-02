@@ -11,7 +11,7 @@ CREATE TABLE `blocks` (
 DROP TABLE IF EXISTS `txlist`;
 CREATE TABLE `txlist` (
   `blockNumber` INT NOT NULL,
-  `hash` CHAR(66) NULL,
+  `hash` CHAR(66) NOT NULL,
   `transactionIndex` INT NOT NULL,
   `nonce` INT NOT NULL,
   `from` CHAR(42) NOT NULL,

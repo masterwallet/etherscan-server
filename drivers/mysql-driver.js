@@ -38,10 +38,23 @@ const installTable = ({ dbconn, filepath, table, separator = ';' }) => {
   return dbconn.query(sql);
 };
 
-const getTxList = async ({ dbconn, limit = 100, conditions = []}) => {
-  const sql = `SELECT blocks.timeStamp, blocks.blockHash, txlist.* FROM txlist JOIN blocks ON txlist.blockNumber = blocks.blockNumber LIMIT ${limit}`;
+const getTxList = async ({ dbconn, sort, limit = 100, conditions }) => {
+
+  const arrWhere = []; 
+  const arrParam = [];
+  const { hash, startblock, endblock, address, from, to } = conditions;
+  if (hash) { arrWhere.push( '(`hash` = ?)'); arrParam.push(hash); }
+  if (from) { arrWhere.push( '(`from` = ?)'); arrParam.push(from); }
+  if (to) { arrWhere.push( '(`to` = ?)'); arrParam.push(to); }
+  if (startblock) { arrWhere.push( '(txlist.`blockNumber` >= ?)'); arrParam.push(startblock); }
+  if (endblock) { arrWhere.push( '(txlist.`blockNumber` <= ?)'); arrParam.push(endblock); }
+  if (address) { arrWhere.push( '(`from` = ? OR `to` = ?)'); arrParam.push(address); arrParam.push(address); }
+
+  let sql = `SELECT blocks.timeStamp, blocks.blockHash, txlist.*\nFROM txlist JOIN blocks ON txlist.blockNumber = blocks.blockNumber`
+  if (arrWhere.length) sql += `\nWHERE ${arrWhere.join('\nAND ')}`;
+  sql += `\nLIMIT ${limit}`;
   debug(sql);
-  const rows = await dbconn.query(sql);
+  const rows = await dbconn.query(sql, arrParam);
   return rows[0];
 };
 

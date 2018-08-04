@@ -40,12 +40,13 @@ module.exports = (options) => {
 
       if (module === 'account') {
         if (action === 'txlist') {
-          const { address, startblock, endblock, sort } = req.query;
-          debug(JSON.stringify(req.query));
-          const conditions = [];
+          const { hash, from, to, address, startblock, endblock, sort = 'asc' } = req.query;
+
+          const conditions = { hash, startblock, endblock, address, from, to };
+          debug('conditions', JSON.stringify(conditions) );
 
           connectToDatabase(options).then(({ dbconn }) => {
-            getTxList({ dbconn, conditions }).then(rows => {
+            getTxList({ dbconn, conditions, sort }).then(rows => {
               return ok(res, rows);
             }).catch(mysqle => { error(res, mysqle.toString()); })
           });

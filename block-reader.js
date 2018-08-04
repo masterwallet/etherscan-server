@@ -7,6 +7,8 @@ const erc20abi = JSON.parse(fs.readFileSync('./erc20.abi.json'));
 let fpBlocks = null;
 let fpContract = null;
 let fpTxlist = null;
+const tokenContracts = {};
+const flushDebug = false;
 
 const finishQueue = () => {
   fs.closeSync(fpBlocks);
@@ -34,13 +36,13 @@ const blockHandler = async ({ web3, block }) => {
   // append block
   fs.writeSync(fpBlocks, `${number};${hash};${timestamp}\n`);
   // append every tx from block.transactions
-  fs.writeFileSync(`./reader/block_${number}.json`, JSON.stringify(block, null, 2));    
+  if (flushDebug) fs.writeFileSync(`./reader/block_${number}.json`, JSON.stringify(block, null, 2));    
 
   for (const trans of transactions) {
     const { hash, nonce, transactionIndex, from, to, value, gas, gasPrice, input } = trans;
     const receipt = await getReceipt({ web3, hash });
-    fs.writeFileSync(`./reader/receipt_${hash}.json`, JSON.stringify(receipt, null, 2));    
-    const { status, logs, contractAddress } = receipt;
+    if (flushDebug) fs.writeFileSync(`./reader/receipt_${hash}.json`, JSON.stringify(receipt, null, 2));    
+    const { status, logs, gasUsed, contractAddress } = receipt;
 
     if (to === "0x0" && contractAddress) {
       dbgContract(`${contractAddress} at block ${number}`);
@@ -55,6 +57,12 @@ const blockHandler = async ({ web3, block }) => {
 
       // that was a contract creation...
       fs.writeSync(fpContract, `${receipt.contractAddress};${number};${name};${symbol};${decimals}\n`);
+      tokenContracts[contractAddress] = { symbol, name, decimals, contractAddress };
+    }
+
+    fs.writeSync(fpTxlist, `${number};${hash};${transactionIndex};${nonce};${from};${contractAddress};${to};${value};${gas};${gasPrice};${gasUsed};${input}\n`);
+    if (tokenContracts[to]) {
+	// TODO: that was a payment to contract, might lead to some actions
     }
   }
 };

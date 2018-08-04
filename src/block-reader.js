@@ -8,6 +8,10 @@ const dbgContract = createDebug('contract:created');
 const erc20abi = JSON.parse(fs.readFileSync(__dirname + '/erc20.abi.json'));
 const { connectToDatabase, disconnectFromDatabase, dropTable, installTable } = require('./drivers/index')(options);
 
+const tmp = require('tmp');
+const tmpPath = tmp.dirSync();
+debug(`created temp path ${tmpPath}`);
+
 let fpBlocks = null;
 let fpContract = null;
 let fpTxlist = null;
@@ -22,7 +26,8 @@ const finishQueue = async ({ options }) => {
   fs.closeSync(fpTxlist);
 
   // (re-) install MYSQL tables
-  const csvDir = path.join(fs.realpathSync(__dirname), "../reader")
+  // const csvDir = path.join(fs.realpathSync(__dirname), "../reader")
+  const csvDir = tmpPath.name;
   dbgFinish(`CSV folder: ${csvDir}`);
 
   const { dbconn } = await connectToDatabase(options);
@@ -39,7 +44,11 @@ const finishQueue = async ({ options }) => {
     }
     dbgFinish(`updating ${table} table`); 
     await installTable({ dbconn, filepath, table, separator: ';' });
+    fs.unlinkSync(filepath);
   }
+
+  dbgFinish(`Removing temp path ${tmpPath.name}`);
+  if(!flushDebug) tmpPath.removeCallback();
   dbgFinish('Disconnecting from database');
   return disconnectFromDatabase({ dbconn });
 };
@@ -63,12 +72,12 @@ const blockHandler = async ({ web3, block }) => {
   // append block
   fs.writeSync(fpBlocks, `${number};${timestamp};${hash}\n`);
   // append every tx from block.transactions
-  if (flushDebug) fs.writeFileSync(`./reader/block_${number}.json`, JSON.stringify(block, null, 2));    
+  if (flushDebug) fs.writeFileSync(`${tmpPath.name}/block_${number}.json`, JSON.stringify(block, null, 2));    
 
   for (const trans of transactions) {
     const { hash, nonce, transactionIndex, from, to, value, gas, gasPrice, input } = trans;
     const receipt = await getReceipt({ web3, hash });
-    if (flushDebug) fs.writeFileSync(`./reader/receipt_${hash}.json`, JSON.stringify(receipt, null, 2));    
+    if (flushDebug) fs.writeFileSync(`${tmpPath.name}/receipt_${hash}.json`, JSON.stringify(receipt, null, 2));    
     const { status, logs, gasUsed, contractAddress } = receipt;
 
     if (to === "0x0" && contractAddress) {
@@ -95,9 +104,9 @@ const blockHandler = async ({ web3, block }) => {
 };
 
 const processQueue = ({ web3, startBlock, endBlock }) => {
-  fpBlocks   = fs.openSync('./reader/db_blocks.csv', 'w');
-  fpContract = fs.openSync('./reader/db_contract.csv', 'w');
-  fpTxlist   = fs.openSync('./reader/db_txlist.csv', 'w');
+  fpBlocks   = fs.openSync(`${tmpPath.name}/db_blocks.csv`, 'w');
+  fpContract = fs.openSync(`${tmpPath.name}/db_contract.csv`, 'w');
+  fpTxlist   = fs.openSync(`${tmpPath.name}/db_txlist.csv`, 'w');
 
   const queue = [];
   // for (let k = endBlock; k >= startBlock; k --) { queue.push(k); }

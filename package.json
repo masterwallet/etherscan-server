@@ -24,6 +24,7 @@
     "ethereumjs-util": "^5.2.0",
     "express": "^4.16.3",
     "mysql2": "^1.6.1",
+    "tmp": "0.0.33",
     "web3": "^0.20.1"
   },
   "devDependencies": {

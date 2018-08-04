@@ -7,8 +7,8 @@
     "start": "cross-env DEBUG=*,-follow-redirects nodemon server.js --cors",
     "init:schema": "sudo mysql -u root etherscan -e \"\\. db/schema.sql\" ",
     "init:db": "sudo mysql -u root -e \"create database etherscan\" ",
-    "update": "node indexer.js",
-    "resave": "node indexer.js --replay"
+    "update": "cross-env DEBUG=* node indexer.js",
+    "resave": "cross-env DEBUG=* node indexer.js --replay"
   },
   "keywords": [],
   "author": "Web Cerebrium <webcerebrium@gmail.com> (https://webcerebrium.com/)",

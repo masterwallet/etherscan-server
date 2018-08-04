@@ -11,8 +11,8 @@ program
   .option('-v, --verbose', 'Increase verbosity', true, 40)
   .parse(process.argv);
 
-const { verbose, cors } = program;
+const { verbose, cors, replay } = program;
 const host = program.host || "127.0.0.1";
 const port = program.port || 9911;
 const web3url = program.url || 'http://127.0.0.1:8545';
-module.exports = { host, port, verbose, cors, url: web3url };
+module.exports = { host, port, verbose, cors, url: web3url, replay };

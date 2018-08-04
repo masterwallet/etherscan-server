@@ -1,8 +1,10 @@
+const path = require('path');
 const createDebug = require('debug');
 const fs = require('fs');
 const debug = createDebug('blockreader');
 const dbgContract = createDebug('contract:created');
 const erc20abi = JSON.parse(fs.readFileSync('./erc20.abi.json'));
+const { connectToDatabase, disconnectFromDatabase, dropTable, installTable } = require('./drivers/mysql-driver');
 
 let fpBlocks = null;
 let fpContract = null;
@@ -10,11 +12,34 @@ let fpTxlist = null;
 const tokenContracts = {};
 const flushDebug = false;
 
-const finishQueue = () => {
+const finishQueue = async ({ options }) => {
+  const dbgFinish = createDebug('queue:finished');
+  dbgFinish('Closing Generated CSV Files');
   fs.closeSync(fpBlocks);
   fs.closeSync(fpContract);
   fs.closeSync(fpTxlist);
-  // (re-) install MYSQL tables and remove files
+
+  // (re-) install MYSQL tables
+  const csvDir = path.join(fs.realpathSync(__filename), "../reader")
+  dbgFinish(`CSV folder: ${csvDir}`);
+
+  const { dbconn } = await connectToDatabase(options);
+  const tables = [
+    { filepath: csvDir + '/db_blocks.csv', table: 'blocks' },
+    { filepath: csvDir + '/db_contract.csv', table: 'contract' },
+    { filepath: csvDir + '/db_txlist.csv', table: 'txlist' }
+  ];
+
+  for (const { filepath, table } of tables) {
+    if (options.replay) { 
+      dbgFinish(`resetting ${table} table`); 
+      await dropTable({ dbconn, table }); 
+    }
+    dbgFinish(`updating ${table} table`); 
+    await installTable({ dbconn, filepath, table, separator: ';' });
+  }
+  dbgFinish('Disconnecting from database');
+  return disconnectFromDatabase({ dbconn });
 };
 
 const getReceipt = ({ web3, hash }) => (new Promise((resolve, reject) => {
@@ -73,7 +98,8 @@ const processQueue = ({ web3, startBlock, endBlock }) => {
   fpTxlist   = fs.openSync('./reader/db_txlist.csv', 'w');
 
   const queue = [];
-  for (let k = endBlock; k >= startBlock; k --) { queue.push(k); }
+  // for (let k = endBlock; k >= startBlock; k --) { queue.push(k); }
+  for (let k = startBlock; k <= endBlock; k++) { queue.push(k); }
   return new Promise(resolve => {
     const pick = () => {
       if (queue.length === 0) return resolve();

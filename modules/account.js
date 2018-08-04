@@ -27,13 +27,38 @@ http://api.etherscan.io/api?module=account&action=txlistinternal&address=0x2c1ba
 http://api.etherscan.io/api?module=account&action=tokentx&address=0x4e83362442b8d1bec281594cea3050c8eb01311c&startblock=0&endblock=999999999&sort=asc&apikey=YourApiKeyToken
 (Returns up to a maximum of the last 10000 transactions only)
 
-
 */
 
-module.exports = (options) => {
-  return (req, res, next) => {
+const debug = require('debug')('module=account');
+const { ok, body, error } = require('./express-util')('account');
 
-    next();
+module.exports = (options) => {
+  const { connectToDatabase, getTxList } = require('./../drivers/mysql-driver');
+  return (req, res, next) => {
+    const { module, action } = req.query;
+    try {
+
+      if (module === 'account') {
+        if (action === 'txlist') {
+          const { address, startblock, endblock, sort } = req.query;
+          debug(JSON.stringify(req.query));
+          const conditions = [];
+
+          connectToDatabase(options).then(({ dbconn }) => {
+            getTxList({ dbconn, conditions }).then(rows => {
+              return ok(res, rows);
+            }).catch(mysqle => { error(res, mysqle.toString()); })
+          });
+      
+        } else if (action == 'tokentx') {
+          return error(res, 'Error!');
+        } else next();
+      } else next();
+
+   } catch (e) {
+     error(res, e.toString());
+   }
+    
   };
 };
  

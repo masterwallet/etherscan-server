@@ -38,9 +38,17 @@ const installTable = ({ dbconn, filepath, table, separator = ';' }) => {
   return dbconn.query(sql);
 };
 
+const getTxList = async ({ dbconn, limit = 100, conditions = []}) => {
+  const sql = `SELECT blocks.timeStamp, blocks.blockHash, txlist.* FROM txlist JOIN blocks ON txlist.blockNumber = blocks.blockNumber LIMIT ${limit}`;
+  debug(sql);
+  const rows = await dbconn.query(sql);
+  return rows[0];
+};
+
 module.exports = {
   connectToDatabase,
   disconnectFromDatabase,
   dropTable,
-  installTable
+  installTable,
+  getTxList
 };

@@ -2,6 +2,7 @@ const http = require("http");
 const express = require("express");
 const bodyParser = require('body-parser');
 const options = require('./options');
+const { connectToDatabase, disconnectFromDatabase } = require('./drivers/mysql-driver');
 
 const app = express();
 app.use(bodyParser.json());

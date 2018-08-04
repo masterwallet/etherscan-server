@@ -59,7 +59,7 @@ const blockHandler = async ({ web3, block }) => {
   // "gasLimit","gasUsed","timestamp","transactions","uncles"]
 
   // append block
-  fs.writeSync(fpBlocks, `${number};${hash};${timestamp}\n`);
+  fs.writeSync(fpBlocks, `${number};${timestamp};${hash}\n`);
   // append every tx from block.transactions
   if (flushDebug) fs.writeFileSync(`./reader/block_${number}.json`, JSON.stringify(block, null, 2));    
 
@@ -85,7 +85,7 @@ const blockHandler = async ({ web3, block }) => {
       tokenContracts[contractAddress] = { symbol, name, decimals, contractAddress };
     }
 
-    fs.writeSync(fpTxlist, `${number};${hash};${transactionIndex};${nonce};${from};${contractAddress};${to};${value};${gas};${gasPrice};${gasUsed};${input}\n`);
+    fs.writeSync(fpTxlist, `${number};${hash};${transactionIndex};${nonce};${from};${contractAddress || ''};${to};${value};${gas};${gasPrice};${gasUsed};${input}\n`);
     if (tokenContracts[to]) {
 	// TODO: that was a payment to contract, might lead to some actions
     }

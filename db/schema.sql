@@ -15,7 +15,7 @@ CREATE TABLE `txlist` (
   `transactionIndex` INT NOT NULL,
   `nonce` INT NOT NULL,
   `from` CHAR(42) NOT NULL,
-  `contractAddress` CHAR(42) NOT NULL,
+  `contractAddress` CHAR(42) NOT NULL DEFAULT '',
   `to` CHAR(42) NOT NULL,
   `value` CHAR(20) NOT NULL DEFAULT '',
   `gas` CHAR(20) NOT NULL DEFAULT '',

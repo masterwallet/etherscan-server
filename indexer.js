@@ -26,8 +26,6 @@ if (require.main === module) {
   const debug = createDebug('etherscan-indexer');
   const Web3 = require('web3');
   const web3 = new Web3(new Web3.providers.HttpProvider(options.url));
-  const Getter = require('./getter');
-  const getter = new Getter(web3);
 
   const handleQueue = (startBlock, endBlock) => {
     const queue = [];
@@ -37,7 +35,9 @@ if (require.main === module) {
       const pick = () => {
         if (queue.length === 0) return resolve();
         const num = queue.shift();
-        getter.requestBlock(num, (n, block) => {
+	const include_transactions = true;
+        web3.eth.getBlock(num, include_transactions, (err, block) => {
+           if (err) return reject( "Error on Block#" + num + ": " + err);
 	   blockHandler(block);
            pick();
         });

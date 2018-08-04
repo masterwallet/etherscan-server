@@ -1,27 +1,33 @@
 const http = require("http");
 const express = require("express");
-const bodyParser = require('body-parser');
-const options = require('./options');
-const { connectToDatabase, disconnectFromDatabase } = require('./drivers/mysql-driver');
+// const bodyParser = require('body-parser');
+const options = require('./src/options');
+const { error } = require('./src/express-util')('etherscan-server');
+const { connectToDatabase, disconnectFromDatabase } = require('./src/drivers/index')(options);
 
 const app = express();
-app.use(bodyParser.json());
+// app.use(bodyParser.json()); 
+if (options.cors) { app.use(require('cors')()); }
 
-if (options.cors) {
-  app.use(require('cors')());
-}
-app.get('/api', require('./modules/account')(options));
-app.get('/api', require('./modules/logs')(options));
+app.get('/api', require('./src/api')(options));
 
-// Dummy page for the api
-app.get('/', (req, res, next) => {
-    res.sendFile(__dirname + '/index.html');
+app.use((req, res, next) => {
+  if (req.path !== '/api') error(res, 'Please use /api endpoint');
+  else next();
 });
 
+
 if (require.main === module) {
-  const { host, port } = options;
-  console.log("app listening on %s:%d ", host, port);
-  app.listen(port, host);
+  const indexer = require('./src/block-indexer')(options);
+  indexer.sync()
+    // .then(indexer.watch)
+    .then(() => {
+      const { host, port } = options;
+      console.log("app listening on %s:%d ", host, port);
+      app.listen(port, host);
+    }).catch(e => {
+      console.error("ERROR: ", e.toString());
+    });
 } else {
   module.exports = app;
 }

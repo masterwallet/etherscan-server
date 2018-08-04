@@ -1,10 +1,12 @@
+module.exports = (options) => {
+
 const path = require('path');
 const createDebug = require('debug');
 const fs = require('fs');
 const debug = createDebug('blockreader');
 const dbgContract = createDebug('contract:created');
-const erc20abi = JSON.parse(fs.readFileSync('./erc20.abi.json'));
-const { connectToDatabase, disconnectFromDatabase, dropTable, installTable } = require('./drivers/mysql-driver');
+const erc20abi = JSON.parse(fs.readFileSync(__dirname + '/erc20.abi.json'));
+const { connectToDatabase, disconnectFromDatabase, dropTable, installTable } = require('./drivers/index')(options);
 
 let fpBlocks = null;
 let fpContract = null;
@@ -20,7 +22,7 @@ const finishQueue = async ({ options }) => {
   fs.closeSync(fpTxlist);
 
   // (re-) install MYSQL tables
-  const csvDir = path.join(fs.realpathSync(__filename), "../reader")
+  const csvDir = path.join(fs.realpathSync(__dirname), "../reader")
   dbgFinish(`CSV folder: ${csvDir}`);
 
   const { dbconn } = await connectToDatabase(options);
@@ -115,4 +117,6 @@ const processQueue = ({ web3, startBlock, endBlock }) => {
   });
 };
 
-module.exports = { processQueue, finishQueue };
+return { processQueue, finishQueue };
+
+};

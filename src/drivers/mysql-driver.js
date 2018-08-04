@@ -7,6 +7,7 @@ const connectToDatabase = async (options) => {
      connectionLimit : 5,
      waitForConnections: true,
      queueLimit: 0,
+     insecureAuth: true,
 
      host: options.mysqlUser || '127.0.0.1',
      port: options.mysqlPort || 3306,

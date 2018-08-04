@@ -8,6 +8,17 @@ if (require.main === module) {
   const Web3 = require('web3');
   const web3 = new Web3(new Web3.providers.HttpProvider(options.url));
 
+  const mysql = require('mysql2/promise');
+ // create the connection to database
+  const connection = await mysql.createConnection({
+     host: options.mysqlUser || '127.0.0.1',
+     port: options.mysqlPort || 3306,
+     user: options.mysqlUser || 'root',
+     password: options.mysqlPassword || '',
+     database: options.mysqlDatabase || 'etherscan'
+  });
+console.log(connection);
+
   debug(`Connecting... to ${options.url}`);
   if (!web3.isConnected()) { 
     fatal(`FATAL ERROR: Cannot connect to ${options.url}.\nPlease ensure Ganache-CLI daemon is running`); 

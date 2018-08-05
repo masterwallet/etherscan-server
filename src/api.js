@@ -72,7 +72,15 @@ module.exports = (options) => {
       } else if (module === 'logs') {
         if (action === 'getLogs') {
 
+          const { hash, from, to, address, fromBlock, toBlock, value, topic0, topic1, topic2, topic3, sort = 'asc' } = req.query;
+          const conditions = { hash, from, to, address, fromBlock, toBlock, value, topic0, topic1, topic2, topic3 };
+          debug('conditions', JSON.stringify(conditions) );
 
+          return connectToDatabase(options).then(({ dbconn }) => {
+            getLogs({ dbconn, conditions, sort }).then(rows => {
+              return ok(res, rows);
+            }).catch(mysqle => { error(res, mysqle.toString()); });
+          }).catch(me => { error(res, me.toString()); });
 
         } else {
           return error(res, 'Error! Invalid action (module=logs)');

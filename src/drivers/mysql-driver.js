@@ -80,12 +80,39 @@ const getTokenTx = async ({ dbconn, sort, limit = 100, conditions }) => {
 const getLogs = async ({ dbconn, sort, limit = 100, conditions }) => {
   const arrWhere = [];
   const arrParam = [];
-  let sql = `SELECT * FROM logs`;
+
+  const { hash, from, to, address, fromBlock, toBlock, value, topic0, topic1, topic2, topic3 } = conditions;
+
+  if (topic0) { arrWhere.push( '(`topic0` = ?)'); arrParam.push(topic0); }
+  if (topic1) { arrWhere.push( '(`topic1` = ?)'); arrParam.push(topic1); }
+  if (topic2) { arrWhere.push( '(`topic2` = ?)'); arrParam.push(topic2); }
+  if (topic3) { arrWhere.push( '(`topic3` = ?)'); arrParam.push(topic3); }
+  if (hash) { arrWhere.push( '(`hash` = ?)'); arrParam.push(hash); }
+  if (from) { arrWhere.push( '(`from` = ?)'); arrParam.push(from); }
+  if (to) { arrWhere.push( '(`to` = ?)'); arrParam.push(to); }
+  if (value) { arrWhere.push( '(`value` = ?)'); arrParam.push(value); }
+  if (fromBlock) { arrWhere.push( '(logs.`blockNumber` >= ?)'); arrParam.push(fromBlock); }
+  if (toBlock) { arrWhere.push( '(logs.`blockNumber` <= ?)'); arrParam.push(toBlock); }
+  if (address) { arrWhere.push( '(`address` = ?)'); arrParam.push(address); }
+
+  let sql = `SELECT blocks.timeStamp, logs.* FROM logs JOIN blocks ON logs.blockNumber = blocks.blockNumber `;
   if (arrWhere.length) sql += `\nWHERE ${arrWhere.join('\nAND ')}`;
   sql += `\nLIMIT ${limit}`;
   debug(sql);
   const rows = await dbconn.query(sql, arrParam);
-  return rows[0];
+  return rows[0].map(r => {
+    const res = r;
+    res.topics = [];
+    if (res.topic0) res.topics.push(res.topic0);
+    if (res.topic1) res.topics.push(res.topic1);
+    if (res.topic2) res.topics.push(res.topic2);
+    if (res.topic3) res.topics.push(res.topic3);
+    delete res.topic0;
+    delete res.topic1;
+    delete res.topic2;
+    delete res.topic3;
+    return res;
+  })
 };
 
 module.exports = {

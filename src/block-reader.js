@@ -39,23 +39,25 @@ const finishQueue = async ({ options }) => {
     { filepath: csvDir + '/db_contract.csv', table: 'contract' },
     { filepath: csvDir + '/db_txlist.csv', table: 'txlist' },
     { filepath: csvDir + '/db_tokentx.csv', table: 'tokentx' },
-    { filepath: csvDir + '/db_logs.csv', table: 'logs' }	  
+    { filepath: csvDir + '/db_logs.csv', table: 'logs' }
   ];
 
   for (const { filepath, table } of tables) {
-    if (options.replay) { 
-      dbgFinish(`resetting ${table} table`); 
-      await dropTable({ dbconn, table }); 
+    if (options.replay) {
+      dbgFinish(`resetting ${table} table`);
+      await dropTable({ dbconn, table });
     }
     if (fs.statSync(filepath).size) {
-      dbgFinish(`updating ${table} table`); 
+      dbgFinish(`updating ${table} table`);
       await installTable({ dbconn, filepath, table, separator: ';' });
     }
     fs.unlinkSync(filepath);
   }
 
-  dbgFinish(`Removing temp path ${tmpPath.name}`);
-  if(!flushDebug) tmpPath.removeCallback();
+  if (!flushDebug) {
+    dbgFinish(`Removing temp path ${tmpPath.name}`);
+    tmpPath.removeCallback();
+  }
   dbgFinish('Disconnecting from database');
   return disconnectFromDatabase({ dbconn });
 };
@@ -79,14 +81,15 @@ const blockHandler = async ({ web3, block }) => {
   // append block
   fs.writeSync(fpBlocks, `${number};${timestamp};${hash}\n`);
   // append every tx from block.transactions
-  if (flushDebug) fs.writeFileSync(`${tmpPath.name}/block_${number}.json`, JSON.stringify(block, null, 2));    
+  if (flushDebug) fs.writeFileSync(`${tmpPath.name}/block_${number}.json`, JSON.stringify(block, null, 2));
 
   for (const trans of transactions) {
     const { hash, nonce, transactionIndex, from, to, value, gas, gasPrice, input } = trans;
     const receipt = await getReceipt({ web3, hash });
-    if (flushDebug) fs.writeFileSync(`${tmpPath.name}/receipt_${hash}.json`, JSON.stringify(receipt, null, 2));    
+    if (flushDebug) fs.writeFileSync(`${tmpPath.name}/receipt_${hash}.json`, JSON.stringify(receipt, null, 2));
     const { status, logs, gasUsed, contractAddress } = receipt;
-
+    const statusValue = parseInt( status.replace('0x', ''), 16 ) ? 1 : '';
+    const isError = statusValue ? 0 : 1;
     if (to === "0x0" && contractAddress) {
       dbgContract(`${contractAddress} at block ${number}`);
 
@@ -95,7 +98,7 @@ const blockHandler = async ({ web3, block }) => {
 
       const symbol = theContract.symbol.call();
       const name = theContract.name.call();
-      const decimals = theContract.decimals.call();	
+      const decimals = theContract.decimals.call();
       dbgContract(`SYMBOL="${symbol}" NAME="${name}" DECIMALS="${decimals}"`);
 
       // that was a contract creation...
@@ -103,9 +106,11 @@ const blockHandler = async ({ web3, block }) => {
       tokenContracts[contractAddress] = { symbol, name, decimals, contractAddress };
     }
 
-    fs.writeSync(fpTxlist, `${number};${hash};${transactionIndex};${nonce};${from};${contractAddress || ''};${to};${value};${gas};${gasPrice};${gasUsed};${input}\n`);
+    fs.writeSync(fpTxlist,
+      `${number};${hash};${transactionIndex};${nonce};${from};${contractAddress || ''};${to};${value};${gas};${gasPrice};${gasUsed};${input};${statusValue};${isError}\n`);
+
     if (tokenContracts[to]) {
-	// TODO: that was a payment to contract, might lead to some actions
+      // TODO: that was a payment to contract, might lead to some actions
     }
   }
 };

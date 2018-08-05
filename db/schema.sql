@@ -22,6 +22,8 @@ CREATE TABLE `txlist` (
   `gasPrice` CHAR(20) NOT NULL DEFAULT '',
   `gasUsed` CHAR(20) NOT NULL DEFAULT '',
   `input` TEXT,
+  `txreceipt_status` CHAR(10) NOT NULL DEFAULT '',
+  `isError` CHAR(10) NOT NULL DEFAULT '0',
   PRIMARY KEY (`hash`),
   INDEX k_blockNumber(`blockNumber`),
   INDEX k_from(`from`),

@@ -5,6 +5,7 @@ const createDebug = require('debug');
 const fs = require('fs');
 const debug = createDebug('blockreader');
 const dbgContract = createDebug('contract:created');
+const dbgTransfer = createDebug('token:transfer');
 const erc20abi = JSON.parse(fs.readFileSync(__dirname + '/erc20.abi.json'));
 const { connectToDatabase, disconnectFromDatabase, dropTable, installTable } = require('./drivers/index')(options);
 
@@ -18,7 +19,7 @@ let fpTxlist = null;
 let fpTokenTx = null;
 let fpLogs = null;
 const tokenContracts = {};
-const flushDebug = false;
+const flushDebug = true;
 
 const finishQueue = async ({ options }) => {
   const dbgFinish = createDebug('queue:finished');
@@ -109,8 +110,21 @@ const blockHandler = async ({ web3, block }) => {
     fs.writeSync(fpTxlist,
       `${number};${hash};${transactionIndex};${nonce};${from};${contractAddress || ''};${to};${value};${gas};${gasPrice};${gasUsed};${input};${statusValue};${isError}\n`);
 
-    if (tokenContracts[to]) {
-      // TODO: that was a payment to contract, might lead to some actions
+    if (logs) {
+      const sha3Transfer = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+      for (const log of logs) {
+        const { logIndex, transactionIndex, transactionHash, data, type, topics } = log;
+        if (tokenContracts[to] && topics[0] === sha3Transfer) {
+          // that was an ERC20 payment to contract, might lead to some actions
+          const removePad = x => x.replace('0x000000000000000000000000', '0x');
+          const tokenFrom = removePad(topics[1]);
+          const tokenTo = removePad(topics[2]);
+          const tokenQty = parseInt(data, 16);
+          dbgTransfer(`#${number}: from ${tokenFrom} to ${tokenTo}`);
+          fs.writeSync(fpTokenTx,
+            `${number};${hash};${transactionIndex};${nonce};${tokenFrom};${to};${tokenTo};${tokenQty};${gas};${gasPrice};${gasUsed};${input}\n`);
+        }
+      }
     }
   }
 };

@@ -15,6 +15,8 @@ debug(`created temp path ${tmpPath}`);
 let fpBlocks = null;
 let fpContract = null;
 let fpTxlist = null;
+let fpTokenTx = null;
+let fpLogs = null;
 const tokenContracts = {};
 const flushDebug = false;
 
@@ -24,9 +26,10 @@ const finishQueue = async ({ options }) => {
   fs.closeSync(fpBlocks);
   fs.closeSync(fpContract);
   fs.closeSync(fpTxlist);
+  fs.closeSync(fpTokenTx);
+  fs.closeSync(fpLogs);
 
   // (re-) install MYSQL tables
-  // const csvDir = path.join(fs.realpathSync(__dirname), "../reader")
   const csvDir = tmpPath.name;
   dbgFinish(`CSV folder: ${csvDir}`);
 
@@ -34,7 +37,9 @@ const finishQueue = async ({ options }) => {
   const tables = [
     { filepath: csvDir + '/db_blocks.csv', table: 'blocks' },
     { filepath: csvDir + '/db_contract.csv', table: 'contract' },
-    { filepath: csvDir + '/db_txlist.csv', table: 'txlist' }
+    { filepath: csvDir + '/db_txlist.csv', table: 'txlist' },
+    { filepath: csvDir + '/db_tokentx.csv', table: 'tokentx' },
+    { filepath: csvDir + '/db_logs.csv', table: 'logs' }	  
   ];
 
   for (const { filepath, table } of tables) {
@@ -42,8 +47,10 @@ const finishQueue = async ({ options }) => {
       dbgFinish(`resetting ${table} table`); 
       await dropTable({ dbconn, table }); 
     }
-    dbgFinish(`updating ${table} table`); 
-    await installTable({ dbconn, filepath, table, separator: ';' });
+    if (fs.statSync(filepath).size) {
+      dbgFinish(`updating ${table} table`); 
+      await installTable({ dbconn, filepath, table, separator: ';' });
+    }
     fs.unlinkSync(filepath);
   }
 
@@ -107,9 +114,10 @@ const processQueue = ({ web3, startBlock, endBlock }) => {
   fpBlocks   = fs.openSync(`${tmpPath.name}/db_blocks.csv`, 'w');
   fpContract = fs.openSync(`${tmpPath.name}/db_contract.csv`, 'w');
   fpTxlist   = fs.openSync(`${tmpPath.name}/db_txlist.csv`, 'w');
+  fpTokenTx  = fs.openSync(`${tmpPath.name}/db_tokentx.csv`, 'w');
+  fpLogs     = fs.openSync(`${tmpPath.name}/db_logs.csv`, 'w');
 
   const queue = [];
-  // for (let k = endBlock; k >= startBlock; k --) { queue.push(k); }
   for (let k = startBlock; k <= endBlock; k++) { queue.push(k); }
   return new Promise(resolve => {
     const pick = () => {

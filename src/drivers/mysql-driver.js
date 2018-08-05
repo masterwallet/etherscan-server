@@ -40,8 +40,7 @@ const installTable = ({ dbconn, filepath, table, separator = ';' }) => {
 };
 
 const getTxList = async ({ dbconn, sort, limit = 100, conditions }) => {
-
-  const arrWhere = []; 
+  const arrWhere = [];
   const arrParam = [];
   const { hash, startblock, endblock, address, from, to } = conditions;
   if (hash) { arrWhere.push( '(`hash` = ?)'); arrParam.push(hash); }
@@ -59,10 +58,42 @@ const getTxList = async ({ dbconn, sort, limit = 100, conditions }) => {
   return rows[0];
 };
 
+const getTokenTx = async ({ dbconn, sort, limit = 100, conditions }) => {
+  const arrWhere = [];
+  const arrParam = [];
+  const { hash, startblock, endblock, address, from, to } = conditions;
+  if (hash) { arrWhere.push( '(`hash` = ?)'); arrParam.push(hash); }
+  if (from) { arrWhere.push( '(`from` = ?)'); arrParam.push(from); }
+  if (to) { arrWhere.push( '(`to` = ?)'); arrParam.push(to); }
+  if (startblock) { arrWhere.push( '(tokentx.`blockNumber` >= ?)'); arrParam.push(startblock); }
+  if (endblock) { arrWhere.push( '(tokentx.`blockNumber` <= ?)'); arrParam.push(endblock); }
+  if (address) { arrWhere.push( '(`from` = ? OR `to` = ?)'); arrParam.push(address); arrParam.push(address); }
+
+  let sql = `SELECT blocks.timeStamp, blocks.blockHash, tokenName, tokenSymbol, tokenDecimal, tokentx.*\nFROM tokentx JOIN blocks ON tokentx.blockNumber = blocks.blockNumber JOIN contract on contract.contractAddress = tokentx.contractAddress`;
+  if (arrWhere.length) sql += `\nWHERE ${arrWhere.join('\nAND ')}`;
+  sql += `\nLIMIT ${limit}`;
+  debug(sql);
+  const rows = await dbconn.query(sql, arrParam);
+  return rows[0];
+};
+
+const getLogs = async ({ dbconn, sort, limit = 100, conditions }) => {
+  const arrWhere = [];
+  const arrParam = [];
+  let sql = `SELECT * FROM logs`;
+  if (arrWhere.length) sql += `\nWHERE ${arrWhere.join('\nAND ')}`;
+  sql += `\nLIMIT ${limit}`;
+  debug(sql);
+  const rows = await dbconn.query(sql, arrParam);
+  return rows[0];
+};
+
 module.exports = {
   connectToDatabase,
   disconnectFromDatabase,
   dropTable,
   installTable,
-  getTxList
+  getTxList,
+  getTokenTx,
+  getLogs
 };

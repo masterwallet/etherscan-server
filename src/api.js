@@ -30,10 +30,10 @@ https://api.etherscan.io/api?module=logs&action=getLogs
 */
 
 const debug = require('debug')('module=account');
-const { ok, body, error } = require('./express-util')('account');
+const { ok, error } = require('./express-util')('account');
 
 module.exports = (options) => {
-  const { connectToDatabase, getTxList } = require('./drivers/index')(options);
+  const { connectToDatabase, getTxList, getTokenTx, getLogs } = require('./drivers/index')(options);
   return (req, res, next) => {
     const { module, action } = req.query;
     debug('module=', module, 'action=', action, 'req.query=', req.query);
@@ -43,8 +43,8 @@ module.exports = (options) => {
 
       if (module === 'account') {
         if (action === 'txlist') {
-          const { hash, from, to, address, startblock, endblock, sort = 'asc' } = req.query;
 
+          const { hash, from, to, address, startblock, endblock, sort = 'asc' } = req.query;
           const conditions = { hash, startblock, endblock, address, from, to };
           debug('conditions', JSON.stringify(conditions) );
 
@@ -53,15 +53,27 @@ module.exports = (options) => {
               return ok(res, rows);
             }).catch(mysqle => { error(res, mysqle.toString()); });
           }).catch(me => { error(res, me.toString()); });
-          
-      
+
         } else if (action === 'tokentx') {
-          return error(res, 'Error!');
+
+          const { hash, from, to, address, startblock, endblock, sort = 'asc' } = req.query;
+          const conditions = { hash, startblock, endblock, address, from, to };
+          debug('conditions', JSON.stringify(conditions) );
+
+          return connectToDatabase(options).then(({ dbconn }) => {
+            getTokenTx({ dbconn, conditions, sort }).then(rows => {
+              return ok(res, rows);
+            }).catch(mysqle => { error(res, mysqle.toString()); });
+          }).catch(me => { error(res, me.toString()); });
+
         } else {
           return error(res, 'Error! Invalid action (module=account)');
         }
       } else if (module === 'logs') {
         if (action === 'getLogs') {
+
+
+
         } else {
           return error(res, 'Error! Invalid action (module=logs)');
         }
@@ -72,7 +84,7 @@ module.exports = (options) => {
    } catch (e) {
      return error(res, e.toString());
    }
-   next(); 
+   next();
   };
 };
- 
+

@@ -66,6 +66,7 @@ CREATE TABLE `logs` (
   `topic1`       CHAR(66) NOT NULL DEFAULT '',
   `topic2`       CHAR(66) NOT NULL DEFAULT '',
   `topic3`       CHAR(66) NOT NULL DEFAULT '',
+  `type`     CHAR(10) NOT NULL DEFAULT '',
   `data`     TEXT,
   PRIMARY KEY (`hash`, `logIndex`),
   INDEX k_address(`address`),

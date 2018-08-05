@@ -11,7 +11,7 @@ const { connectToDatabase, disconnectFromDatabase, dropTable, installTable } = r
 
 const tmp = require('tmp');
 const tmpPath = tmp.dirSync();
-debug(`created temp path ${tmpPath}`);
+debug(`created temp path ${tmpPath.name}`);
 
 let fpBlocks = null;
 let fpContract = null;
@@ -113,7 +113,7 @@ const blockHandler = async ({ web3, block }) => {
     if (logs) {
       const sha3Transfer = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
       for (const log of logs) {
-        const { logIndex, transactionIndex, transactionHash, data, type, topics } = log;
+        const { logIndex, transactionIndex, transactionHash, address, data, type, topics } = log;
         if (tokenContracts[to] && topics[0] === sha3Transfer) {
           // that was an ERC20 payment to contract, might lead to some actions
           const removePad = x => x.replace('0x000000000000000000000000', '0x');
@@ -124,6 +124,13 @@ const blockHandler = async ({ web3, block }) => {
           fs.writeSync(fpTokenTx,
             `${number};${hash};${transactionIndex};${nonce};${tokenFrom};${to};${tokenTo};${tokenQty};${gas};${gasPrice};${gasUsed};${input}\n`);
         }
+        // flushing logs row
+        const topic0 = topics[0] || '';
+        const topic1 = topics[1] || '';
+        const topic2 = topics[2] || '';
+        const topic3 = topics[3] || '';
+        fs.writeSync(fpLogs,
+          `${address};${number};${transactionHash};${logIndex};${topic0};${topic1};${topic2};${topic3};${type};${data}\n`);
       }
     }
   }

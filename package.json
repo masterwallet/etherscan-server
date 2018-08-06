@@ -4,7 +4,7 @@
   "description": "EtherScan Server - emulating some functions of etherscan.io API for testing",
   "main": "server.js",
   "scripts": {
-    "start": "cross-env DEBUG=*,-follow-redirects nodemon server.js --cors",
+    "start": "cross-env DEBUG=*,-follow-redirects nodemon server.js --replay --cors",
     "init:schema:sudo": "sudo mysql -u root etherscan -e \"\\. db/schema.sql\" ",
     "init:db:sudo": "sudo mysql -u root -e \"create database etherscan\" ",
     "init:schema": "mysql -u root etherscan -e \"\\. db/schema.sql\" ",

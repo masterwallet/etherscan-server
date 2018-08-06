@@ -16,10 +16,10 @@ const connectToDatabase = async (options) => {
      database: options.mysqlDatabase || 'etherscan'
   }).promise();
 
-  // ignore what is in database in full replay mode
-  if (options.replay) return { dbconn, maxBlockNumber: -1 };
-
-  const res = await dbconn.query('SELECT MAX(blockNumber) as bn FROM blocks');
+  const sql = 'SELECT MAX(blockNumber) as bn FROM blocks'
+  debug(sql);
+  const res = await dbconn.query(sql);
+  debug(JSON.stringify(res[0][0]));
   const maxBlockNumber = res[0][0].bn || -1;
   return { dbconn, maxBlockNumber };
 };

@@ -6,7 +6,7 @@ const { error } = require('./src/express-util')('etherscan-server');
 const { connectToDatabase, disconnectFromDatabase } = require('./src/drivers/index')(options);
 
 const app = express();
-// app.use(bodyParser.json()); 
+// app.use(bodyParser.json());
 if (options.cors) { app.use(require('cors')()); }
 
 app.get('/api', require('./src/api')(options));
@@ -20,7 +20,7 @@ app.use((req, res, next) => {
 if (require.main === module) {
   const indexer = require('./src/block-indexer')(options);
   indexer.sync()
-    // .then(indexer.watch)
+    .then(indexer.watch)
     .then(() => {
       const { host, port } = options;
       console.log("app listening on %s:%d ", host, port);

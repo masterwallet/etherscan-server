@@ -23,7 +23,7 @@ module.exports = module => {
 
   const error = (res, result, code = 'NOTOK') => {
     debug( code, result );
-    res.status(500).json({
+    res.status(200).json({
       status: "0",
       result,
       message: code

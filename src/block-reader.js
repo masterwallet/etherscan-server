@@ -51,7 +51,7 @@ module.exports = (options) => {
         dbgFinish(`updating ${table} table`);
         await installTable({ dbconn, filepath, table, separator: ';' });
       }
-      fs.unlinkSync(filepath);
+      // fs.unlinkSync(filepath);
     }
 
     if (!flushDebug) {

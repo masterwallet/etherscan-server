@@ -55,8 +55,8 @@ module.exports = (options) => {
     }
 
     if (!flushDebug) {
-      dbgFinish(`Removing temp path ${tmpPath.name}`);
-      tmpPath.removeCallback();
+//      dbgFinish(`Removing temp path ${tmpPath.name}`);
+//      tmpPath.removeCallback();
     }
     dbgFinish('Disconnecting from database');
     return disconnectFromDatabase({ dbconn });

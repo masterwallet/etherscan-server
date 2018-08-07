@@ -4,7 +4,7 @@ const debug = require('debug')('mysql');
 const connectToDatabase = async (options) => {
  // create the connection to database
   const dbconn = await mysql.createPool({
-     connectionLimit : 5,
+     connectionLimit : 100,
      waitForConnections: true,
      queueLimit: 0,
      insecureAuth: true,

@@ -2,7 +2,9 @@
 EtherScan NodeJs Server - For Test Environments
 
 # Purpose
-This tool is designed to emulate some functions of EtherScap API - which is not available for test and local environments.
+
+This tool is designed to emulate some functions of EthenScap API - which is not available for test and local environments.
+It watches changes of Ethereum TestRPC and creates database with indexes to speed up queries to blockchain.
 
 # Installation
 
@@ -21,3 +23,6 @@ npm run start
 
 # Disclaimer
 This is early beta, should not be used for production yet
+
+# License
+MIT

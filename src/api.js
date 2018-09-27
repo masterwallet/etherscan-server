@@ -67,7 +67,7 @@ module.exports = (options) => {
           }).catch(me => { error(res, me.toString()); });
 
         } else {
-          return error(res, 'Error! Invalid action (module=account)');
+          return error(res, 'Error! Invalid action (module=account), action=' + action);
         }
       } else if (module === 'logs') {
         if (action === 'getLogs') {

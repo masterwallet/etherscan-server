@@ -29,8 +29,12 @@ https://api.etherscan.io/api?module=logs&action=getLogs
 &topic1=0x72657075746174696f6e00000000000000000000000000000000000000000000
 */
 
-const debug = require('debug')('module=account');
+const createDebug = require('debug');
+const debug = createDebug('etherscan-api');
+const proxyDebug = createDebug('module=proxy');
+const accountDebug = createDebug('module=account');
 const { ok, error } = require('./express-util')('account');
+const { query } = require('./ethereum-query');
 
 module.exports = (options) => {
   const { connectToDatabase, getTxList, getTokenTx, getLogs } = require('./drivers/index')(options);
@@ -38,15 +42,31 @@ module.exports = (options) => {
     const { module, action } = req.query;
     debug('module=', module, 'action=', action, 'req.query=', req.query);
 
-
     try {
+      if (module === 'proxy') {
+        
+        const proxyActions = require('./proxy-actions')(options);
+        proxyDebug("calling proxy method=", action, " descriptor: ", proxyActions[action]);
+        if (typeof proxyActions[action] === 'object') {
 
-      if (module === 'account') {
+          const params = proxyActions[action].params.map(param => (req.query[param]));
+
+          proxyDebug("method=", action, "params=", params, "endpoint=", options.url);
+          query({ method: action, params, endpoint: options.url })
+            .then(data => { return ok(res, data); })
+            .catch(me => { return error(res, me.toString()); });
+
+          return;
+        } else {
+          return error(res, 'Error! Invalid action (module=proxy), action=' + action);
+        }
+
+      } else if (module === 'account') {
         if (action === 'txlist') {
 
           const { hash, from, to, address, startblock, endblock, sort = 'asc' } = req.query;
           const conditions = { hash, startblock, endblock, address, from, to };
-          debug('conditions', JSON.stringify(conditions) );
+          accountDebug('conditions', JSON.stringify(conditions) );
 
           return connectToDatabase(options).then(({ dbconn }) => {
             getTxList({ dbconn, conditions, sort }).then(rows => {
@@ -58,7 +78,7 @@ module.exports = (options) => {
 
           const { hash, from, to, address, startblock, endblock, sort = 'asc' } = req.query;
           const conditions = { hash, startblock, endblock, address, from, to };
-          debug('conditions', JSON.stringify(conditions) );
+          accountDebug('conditions', JSON.stringify(conditions) );
 
           return connectToDatabase(options).then(({ dbconn }) => {
             getTokenTx({ dbconn, conditions, sort }).then(rows => {

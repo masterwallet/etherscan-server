@@ -25,7 +25,7 @@ module.exports = (options) => {
 
       if (startBlock <= endBlock) {
         return processQueue({ web3, startBlock, endBlock })
-          .then(async () => (finishQueue({ options, reset: options.replay })))
+          .then(async ({ fileDescriptors, processId }) => (finishQueue({ options, reset: options.replay, fileDescriptors, processId })))
           .then(() => { debug('Indexing Finished'); })
           .catch(pe => { fatal(pe); });
       } else {
@@ -53,7 +53,7 @@ module.exports = (options) => {
             debug(JSON.stringify(block));
 
             processQueue({ web3, startBlock: number, endBlock: number })
-              .then(async () => (finishQueue({ options, reset: false })))
+              .then(async ({ fileDescriptors, processId }) => (finishQueue({ options, reset: false, fileDescriptors, processId })))
               .catch(pe => { fatal(pe); });
 
           } else {

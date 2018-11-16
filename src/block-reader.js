@@ -12,17 +12,13 @@ module.exports = (options) => {
   const tmpPath = tmp.dirSync();
   debug(`created temp path ${tmpPath.name}`);
 
-  let fpBlocks = null;
-  let fpContract = null;
-  let fpTxlist = null;
-  let fpTokenTx = null;
-  let fpLogs = null;
   const tokenContracts = {};
   const flushDebug = true;
 
-  const finishQueue = async ({ options, reset }) => {
+  const finishQueue = async ({ options, reset, fileDescriptors, processId }) => {
     const dbgFinish = createDebug('queue:finished');
     dbgFinish('Closing Generated CSV Files');
+    const { fpBlocks, fpContract, fpTxlist, fpTokenTx, fpLogs } = fileDescriptors;
     fs.closeSync(fpBlocks);
     fs.closeSync(fpContract);
     fs.closeSync(fpTxlist);
@@ -35,11 +31,11 @@ module.exports = (options) => {
 
     const { dbconn } = await connectToDatabase(options);
     const tables = [
-      { filepath: csvDir + '/db_blocks.csv', table: 'blocks' },
-      { filepath: csvDir + '/db_contract.csv', table: 'contract' },
-      { filepath: csvDir + '/db_txlist.csv', table: 'txlist' },
-      { filepath: csvDir + '/db_tokentx.csv', table: 'tokentx' },
-      { filepath: csvDir + '/db_logs.csv', table: 'logs' }
+      { filepath: csvDir + `/db_blocks_${processId}.csv`, table: 'blocks' },
+      { filepath: csvDir + `/db_contract_${processId}.csv`, table: 'contract' },
+      { filepath: csvDir + `/db_txlist_${processId}.csv`, table: 'txlist' },
+      { filepath: csvDir + `/db_tokentx_${processId}.csv`, table: 'tokentx' },
+      { filepath: csvDir + `/db_logs_${processId}.csv`, table: 'logs' }
     ];
 
     for (const { filepath, table } of tables) {
@@ -49,9 +45,14 @@ module.exports = (options) => {
       }
       if (fs.statSync(filepath).size) {
         dbgFinish(`updating ${table} table`);
-        await installTable({ dbconn, filepath, table, separator: ';' });
+        await installTable({ dbconn, filepath, table, separator: ';' }).then(() => {
+          dbgFinish(`deleting ${filepath}`);
+          fs.unlinkSync(filepath);
+        });
+      } else {
+        dbgFinish(`deleting ${filepath}`);
+        fs.unlinkSync(filepath);
       }
-      // fs.unlinkSync(filepath);
     }
 
     if (!flushDebug) {
@@ -69,7 +70,7 @@ module.exports = (options) => {
     });
   }));
 
-  const blockHandler = async ({ web3, block }) => {
+  const blockHandler = async ({ web3, block, fileDescriptors }) => {
     const { number, hash, timestamp, transactions } = block;
     debug(`reading #${number}, tx:${transactions.length}`);
 
@@ -78,6 +79,7 @@ module.exports = (options) => {
     // "stateRoot","receiptsRoot","miner","difficulty","totalDifficulty","extraData","size",
     // "gasLimit","gasUsed","timestamp","transactions","uncles"]
 
+    const { fpBlocks, fpContract, fpTxlist, fpTokenTx, fpLogs } = fileDescriptors;
     // append block
     fs.writeSync(fpBlocks, `${number};${timestamp};${hash}\n`);
     // append every tx from block.transactions
@@ -136,22 +138,25 @@ module.exports = (options) => {
   };
 
   const processQueue = ({ web3, startBlock, endBlock }) => {
-    fpBlocks   = fs.openSync(`${tmpPath.name}/db_blocks.csv`, 'w');
-    fpContract = fs.openSync(`${tmpPath.name}/db_contract.csv`, 'w');
-    fpTxlist   = fs.openSync(`${tmpPath.name}/db_txlist.csv`, 'w');
-    fpTokenTx  = fs.openSync(`${tmpPath.name}/db_tokentx.csv`, 'w');
-    fpLogs     = fs.openSync(`${tmpPath.name}/db_logs.csv`, 'w');
+    const processId = `${startBlock}-${endBlock}`;
+    const fileDescriptors = {
+      fpBlocks: fs.openSync(`${tmpPath.name}/db_blocks_${processId}.csv`, 'w'),
+      fpContract: fs.openSync(`${tmpPath.name}/db_contract_${processId}.csv`, 'w'),
+      fpTxlist: fs.openSync(`${tmpPath.name}/db_txlist_${processId}.csv`, 'w'),
+      fpTokenTx: fs.openSync(`${tmpPath.name}/db_tokentx_${processId}.csv`, 'w'),
+      fpLogs: fs.openSync(`${tmpPath.name}/db_logs_${processId}.csv`, 'w'),
+    };
 
     const queue = [];
     for (let k = startBlock; k <= endBlock; k++) { queue.push(k); }
     return new Promise((resolve, reject) => {
       const pick = () => {
-        if (queue.length === 0) return resolve();
+        if (queue.length === 0) return resolve({ fileDescriptors, processId });
         const num = queue.shift();
         const include_transactions = true;
         web3.eth.getBlock(num, include_transactions, async (err, block) => {
           if (err) return reject( "Error on Block#" + num + ": " + err);
-          await blockHandler({ web3, block });
+          await blockHandler({ web3, block, fileDescriptors });
           pick();
         });
       };

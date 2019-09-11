@@ -16,7 +16,7 @@
   "author": "Web Cerebrium <webcerebrium@gmail.com> (https://webcerebrium.com/)",
   "license": "ISC",
   "dependencies": {
-    "axios": "^0.18.0",
+    "axios": "^0.18.",
     "bignumber.js": "^7.2.1",
     "body-parser": "^1.18.3",
     "commander": "^2.15.1",
